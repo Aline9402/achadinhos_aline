@@ -60,28 +60,32 @@
             border-color: var(--primary-color);
         }
 
+        /* BARRA DE CATEGORIAS ESTILO APP (DESLIZA PARA O LADO) */
         .categories {
             display: flex;
             justify-content: flex-start;
             gap: 10px;
             overflow-x: auto;
-            padding: 10px 5px;
-            scrollbar-width: none;
+            padding: 10px 15px;
+            scrollbar-width: none; /* Firefox */
+            -webkit-overflow-scrolling: touch;
         }
 
         .categories::-webkit-scrollbar {
-            display: none;
+            display: none; /* Chrome, Safari, Opera */
         }
 
         .category-btn {
             background: #EDEDED;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 20px;
             font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
             transition: 0.2s;
+            font-size: 0.9rem;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .category-btn.active {
@@ -127,10 +131,11 @@
         .image-container {
             position: relative;
             width: 100%;
-            padding-top: 140%; /* Mantém proporção da imagem */
+            padding-top: 140%; /* Mantém proporção excelente vertical */
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
+            background-color: #fafafa;
         }
 
         .platform-badge {
@@ -204,7 +209,7 @@
     <header>
         <h1>🛍️ Meus Achadinhos Favoritos</h1>
         <input type="text" id="search" class="search-box" placeholder="Digite o código ou nome do produto...">
-<div class="categories">
+        <div class="categories">
             <button class="category-btn active" onclick="filterCategory('todos', this)">Todos</button>
             <button class="category-btn" onclick="filterCategory('casa', this)">Casa & Decor</button>
             <button class="category-btn" onclick="filterCategory('beleza', this)">Beleza</button>
@@ -220,7 +225,6 @@
     </div>
 
     <script>
-        
         const SPREADSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTt32TUw8CEuNGL0V_a-uQYsVnUbFt6aDevLgwbirCTT2BZ-XMUCb-Zw-QSlldVEOe7fGI8wc8Nw6Dz/pub?output=csv';
 
         let todosProdutos = [];
@@ -228,17 +232,9 @@
 
         async function carregarProdutos() {
             try {
-                if(SPREADSHEET_CSV_URL === 'COLE_AQUI_O_LINK_DO_SEU_CSV') {
-                    document.getElementById('grid').innerHTML = '<div class="error-msg">⚠️ Erro: Você precisa configurar o link do seu Google Sheets no código JavaScript!</div>';
-                    return;
-                }
-
                 const response = await fetch(SPREADSHEET_CSV_URL);
                 const data = await response.text();
-                
-                // Converte o CSV para Array de Objetos
                 todosProdutos = csvToArray(data);
-                
                 renderizarProdutos(todosProdutos);
             } catch (error) {
                 console.error(error);
@@ -247,16 +243,22 @@
         }
 
         function csvToArray(str, delimiter = ",") {
-            const rows = str.slice(str.indexOf("\n") + 1).split("\n");
+            const rows = str.split("\n");
+            // Remove o cabeçalho
+            rows.shift();
+            
             return rows.map(function (row) {
-                // Regex para lidar com possíveis células contendo vírgulas entre aspas
+                if(!row.trim()) return null;
+                
+                // Divide por vírgula considerando possíveis aspas no título
                 const values = row.split(delimiter);
                 if(values.length < 5) return null;
+                
                 return {
                     id: values[0]?.trim(),
                     titulo: values[1]?.trim().replace(/^"|"$/g, ''),
                     categoria: values[2]?.trim().toLowerCase(),
-                    plataforma: values[3]?.trim().toLowerCase(),
+                    plataforma: values[3]?.trim().toLowerCase().replace(/\s+/g, ''),
                     link: values[4]?.trim(),
                     imagem: values[5]?.trim()
                 };
@@ -268,12 +270,12 @@
             grid.innerHTML = '';
 
             if (lista.length === 0) {
-                grid.innerHTML = '<div class="loading">Nenhum produto encontrado 🔍</div>';
+                grid.innerHTML = '<div class="loading">Nenhum produto encontrado nesta categoria 🔍</div>';
                 return;
             }
 
             lista.forEach(prod => {
-                const badgeClass = `badge-${prod.plataforma.replace(' ', '')}`;
+                const badgeClass = `badge-${prod.plataforma}`;
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 card.innerHTML = `
@@ -292,7 +294,6 @@
             });
         }
 
-        // Sistema de Busca Instantânea
         document.getElementById('search').addEventListener('input', function(e) {
             const termo = e.target.value.toLowerCase();
             filtrarResultados(termo, categoriaAtual);
@@ -324,7 +325,6 @@
             renderizarProdutos(filtrados);
         }
 
-        // Inicializa o app
         carregarProdutos();
     </script>
 </body>
